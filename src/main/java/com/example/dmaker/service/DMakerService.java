@@ -1,19 +1,20 @@
 package com.example.dmaker.service;
 
+import com.example.dmaker.code.StatusCode;
 import com.example.dmaker.dto.CreateDeveloper;
 import com.example.dmaker.dto.DeveloperDetailDto;
 import com.example.dmaker.dto.DeveloperDto;
 import com.example.dmaker.dto.EditDeveloper;
 import com.example.dmaker.entity.Developer;
+import com.example.dmaker.entity.RetiredDeveloper;
 import com.example.dmaker.exception.DMakerException;
 import com.example.dmaker.repository.DeveloperRepository;
+import com.example.dmaker.repository.RetiredDeveloperRepository;
 import com.example.dmaker.type.DeveloperLevel;
-import com.example.dmaker.type.DeveloperSkillType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ import static com.example.dmaker.exception.DMakerErrorCode.*;
 public class DMakerService {
 
     private final DeveloperRepository developerRepository;
+    private final RetiredDeveloperRepository retiredDeveloperRepository;
 
     @Transactional      // AOP 공통모듈 => 어노테이션으로 , TranctionInterceptor 내 invocation : Aop joint 호출이었다!
     public CreateDeveloper.Response createDeveloper(CreateDeveloper.Request request) {
@@ -36,6 +38,7 @@ public class DMakerService {
                 .developerSkillType(request.getDeveloperSkillType())
                 .experienceYears(request.getExperienceYears())
                 .memberId(request.getMemberId())
+                .statusCode(StatusCode.EMPLOYED)
                 .name(request.getName())
                 .age(request.getAge())
                 .build();
@@ -63,8 +66,8 @@ public class DMakerService {
         });
     }
 
-    public List<DeveloperDto> getAllDevelopers() {
-        return developerRepository.findAll()
+    public List<DeveloperDto> getAllEmployedDevelopers() {
+        return developerRepository.findDevelopersByStatusCodeEquals(StatusCode.EMPLOYED)
                 .stream()
                 .map(DeveloperDto::fromEntity)
                 .collect(Collectors.toList());
@@ -116,5 +119,24 @@ public class DMakerService {
                 && experienceYears > 4) {
             throw new DMakerException(LEVEL_EXPERIENCE_YEARS_NOT_MATCHED);
         }
+    }
+
+    @Transactional
+    // Transactional 없으면 정말 위험! delete는 실제로 삭제하지 않음! 다른 DB에 넣든가 flag값을 바꾼다.
+    public DeveloperDetailDto deleteDeveloper(String memberId) {
+        // 1. EMPLOYED -> RETIRED
+        var developer = developerRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new DMakerException(NO_DEVELOPER));
+        developer.setStatusCode(StatusCode.RETIRED);
+
+        // 2. save into RetireDeveloper
+        var retiredDeveloper = RetiredDeveloper.builder()
+                .memberId(memberId)
+                .name(developer.getName())
+                .build();
+
+        retiredDeveloperRepository.save(retiredDeveloper);
+
+        return DeveloperDetailDto.fromEntity(developer);
     }
 }
