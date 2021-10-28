@@ -1,5 +1,6 @@
 package com.example.dmaker.dto;
 
+import com.example.dmaker.entity.Developer;
 import com.example.dmaker.type.DeveloperLevel;
 import com.example.dmaker.type.DeveloperSkillType;
 
@@ -55,6 +56,14 @@ public class CreateDeveloper {
         private Integer experienceYears;
         private String memberId;
 
+        public static Response fromEntity(Developer developer){
+            return Response.builder()
+                    .developerLevel(developer.getDeveloperLevel())
+                    .developerSkillType(developer.getDeveloperSkillType())
+                    .experienceYears(developer.getExperienceYears())
+                    .memberId(developer.getMemberId())
+                    .build();
+        }
 
     }
 }

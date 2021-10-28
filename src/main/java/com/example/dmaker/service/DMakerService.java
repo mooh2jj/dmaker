@@ -2,7 +2,6 @@ package com.example.dmaker.service;
 
 import com.example.dmaker.dto.CreateDeveloper;
 import com.example.dmaker.entity.Developer;
-import com.example.dmaker.exception.DMakerErrorCode;
 import com.example.dmaker.exception.DMakerException;
 import com.example.dmaker.repository.DeveloperRepository;
 import com.example.dmaker.type.DeveloperLevel;
@@ -12,9 +11,8 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 
-import java.util.Optional;
-
-import static com.example.dmaker.exception.DMakerErrorCode.*;
+import static com.example.dmaker.exception.DMakerErrorCode.DUPLICATED_MEMBER_ID;
+import static com.example.dmaker.exception.DMakerErrorCode.LEVEL_EXPERIENCE_YEARS_NOT_MATCHED;
 
 @Service
 @RequiredArgsConstructor
@@ -23,19 +21,23 @@ public class DMakerService {
     private final DeveloperRepository developerRepository;
 
     @Transactional      // AOP 공통모듈 => 어노테이션으로 , TranctionInterceptor 내 invocation : Aop joint 호출이었다!
-    public void createDeveloper(CreateDeveloper.Request request) {
+    public CreateDeveloper.Response createDeveloper(CreateDeveloper.Request request) {
 
+        // business logic start
         validateCreateDeveloperRequest(request);
 
         Developer developer = Developer.builder()
-                .developerLevel(DeveloperLevel.JUNGNIOR)
-                .developerSkillType(DeveloperSkillType.BACK_END)
-                .experienceYears(2)
-                .name("sg.do")
-                .age(31)
+                .developerLevel(request.getDeveloperLevel())
+                .developerSkillType(request.getDeveloperSkillType())
+                .experienceYears(request.getExperienceYears())
+                .memberId(request.getMemberId())
+                .name(request.getName())
+                .age(request.getAge())
                 .build();
 
         developerRepository.save(developer);
+
+        return CreateDeveloper.Response.fromEntity(developer);
     }
 
     private void validateCreateDeveloperRequest(CreateDeveloper.Request request) {
@@ -50,7 +52,7 @@ public class DMakerService {
         }
 
         if (developerLevel == DeveloperLevel.JUNIOR
-                && (experienceYears < 4 || experienceYears > 10)) {
+                && (experienceYears < 1 || experienceYears > 10)) {
             throw new DMakerException(LEVEL_EXPERIENCE_YEARS_NOT_MATCHED);
         }
 
