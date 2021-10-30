@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Slf4j
+@ToString
 public class DeveloperDto {
 
     private DeveloperLevel developerLevel;
